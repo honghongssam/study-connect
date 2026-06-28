@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyConnect - 학생 학습 Q&A 커뮤니티</title>
+  <meta name="description" content="학생들이 공부하다 궁금한 점을 질문하고 답변을 나누는 3단 구조 Q&A 커뮤니티 플랫폼입니다.">
+  <!-- Google Fonts 프리로드 및 가져오기 (Inter & Noto Sans KR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- CSS 스타일시트 연결 -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 메인 앱 컨테이너 (슬랙/디스코드 느낌의 3단 레이아웃) -->
+  <div id="app" class="app-layout">
+    
+    <!-- ========================================== -->
+    <!-- 1단 (좌측): 스마트 키워드 & 과목 사이드바 -->
+    <!-- ========================================== -->
+    <aside class="sidebar-left" id="sidebarLeft">
+      <!-- 서비스 로고 헤더 -->
+      <div class="brand-header">
+        <div class="logo-icon">📚</div>
+        <div class="logo-text">
+          <h1>StudyConnect</h1>
+          <span class="badge-school">서연고등학교</span>
+        </div>
+      </div>
+
+      <!-- 과목 카테고리 필터 섹션 -->
+      <div class="sidebar-section">
+        <h2 class="section-title">과목별 탐색</h2>
+        <ul class="category-list" id="categoryList">
+          <li class="category-item active" data-subject="all">
+            <span class="icon">✨</span> 전체보기
+          </li>
+          <li class="category-item" data-subject="수학">
+            <span class="icon">📐</span> 수학
+          </li>
+          <li class="category-item" data-subject="영어">
+            <span class="icon">🔤</span> 영어
+          </li>
+          <li class="category-item" data-subject="국어">
+            <span class="icon">📖</span> 국어
+          </li>
+          <li class="category-item" data-subject="과학">
+            <span class="icon">🧪</span> 과학
+          </li>
+          <li class="category-item" data-subject="사회">
+            <span class="icon">🌍</span> 사회
+          </li>
+          <li class="category-item" data-subject="기타">
+            <span class="icon">💡</span> 기타
+          </li>
+        </ul>
+      </div>
+
+      <!-- 인기 태그 필터 섹션 -->
+      <div class="sidebar-section">
+        <h2 class="section-title">인기 키워드 태그</h2>
+        <div class="tag-cloud" id="tagCloud">
+          <button class="tag-chip active" data-tag="all">#전체태그</button>
+          <button class="tag-chip" data-tag="개념이해">#개념이해</button>
+          <button class="tag-chip" data-tag="풀이과정">#풀이과정</button>
+          <button class="tag-chip" data-tag="중간고사">#중간고사</button>
+          <button class="tag-chip" data-tag="기출문제">#기출문제</button>
+          <button class="tag-chip" data-tag="수능">#수능</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ========================================== -->
+    <!-- 2단 (중앙): 질문 게시판 & 메인 콘텐츠 피드 -->
+    <!-- ========================================== -->
+    <main class="main-content" id="mainContent">
+      <!-- 상단 검색 및 질문 작성 컨트롤 바 -->
+      <header class="content-header">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="궁금한 내용을 검색해보세요... (예: 미분, 영단어)">
+        </div>
+        <button class="btn-primary" id="btnOpenNewQuestion">
+          <span class="btn-icon">✏️</span> 질문 작성하기
+        </button>
+      </header>
+
+      <!-- 현재 필터 상태 및 정렬 영역 -->
+      <div class="feed-filter-bar">
+        <div class="current-filter-info">
+          <h2 id="currentFilterTitle">전체 질문 목록</h2>
+          <span class="question-count" id="questionCount">0개의 질문</span>
+        </div>
+        <div class="sort-options">
+          <button class="sort-btn active" data-sort="latest">최신순</button>
+          <button class="sort-btn" data-sort="popular">도움돼요 많은순</button>
+          <button class="sort-btn" data-sort="unanswered">답변 대기 중만</button>
+        </div>
+      </div>
+
+      <!-- 질문 피드 카드 목록 리스트 -->
+      <div class="question-feed" id="questionFeed">
+        <!-- JS로 dynamic 렌더링 됩니다. -->
+      </div>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- 3단 (우측): 공지사항 & 내 프로필 위젯 -->
+    <!-- ========================================== -->
+    <aside class="sidebar-right" id="sidebarRight">
+      <!-- 현재 테스트 유저 (user_01) 프로필 카드 -->
+      <div class="widget-card user-profile-card">
+        <div class="profile-header">
+          <div class="avatar" id="userAvatar">🎓</div>
+          <div class="user-info">
+            <h3 id="userName">김학구</h3>
+            <span class="user-id-tag">@user_01 (테스트 유저)</span>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="userQuestionCount">0</span>
+            <span class="stat-label">내가 쓴 질문</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value" id="userAnswerCount">0</span>
+            <span class="stat-label">작성한 답변</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value" id="userAcceptedCount">0</span>
+            <span class="stat-label">채택된 답변</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 학교 및 클래스 공지사항 위젯 -->
+      <div class="widget-card notice-widget">
+        <h3 class="widget-title">📢 학습 커뮤니티 공지</h3>
+        <ul class="notice-list">
+          <li class="notice-item">
+            <span class="notice-tag">이벤트</span>
+            <p class="notice-text">2학기 중간고사 대비 '열공 답변왕' 포인트 지급 이벤트!</p>
+          </li>
+          <li class="notice-item">
+            <span class="notice-tag">안내</span>
+            <p class="notice-text">친구에게 매너 있는 예쁜 말과 정확한 풀이를 선물해주세요.</p>
+          </li>
+          <li class="notice-item">
+            <span class="notice-tag">팁</span>
+            <p class="notice-text">질문 작성 시 과목과 태그를 정확히 선택하면 빠르게 답변을 받아요.</p>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 답변 대기 중인 질문 퀵 위젯 -->
+      <div class="widget-card quick-questions-widget">
+        <h3 class="widget-title">🙋‍♂️ 답변을 기다리는 질문</h3>
+        <div class="quick-list" id="quickQuestionsList">
+          <!-- JS로 dynamic 렌더링 됩니다. -->
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 모달 레이어 1: 새 질문 작성 모달 -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="newQuestionModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>✏️ 새로운 질문 작성하기</h2>
+        <button class="modal-close" id="btnCloseNewQuestion">&times;</button>
+      </div>
+      <form id="newQuestionForm" class="modal-form">
+        <div class="form-group">
+          <label for="inputSubject">과목 선택 <span class="required">*</span></label>
+          <select id="inputSubject" required>
+            <option value="수학">📐 수학</option>
+            <option value="영어">🔤 영어</option>
+            <option value="국어">📖 국어</option>
+            <option value="과학">🧪 과학</option>
+            <option value="사회">🌍 사회</option>
+            <option value="기타">💡 기타</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="inputTitle">질문 제목 <span class="required">*</span></label>
+          <input type="text" id="inputTitle" placeholder="궁금한 핵심 내용 한 줄 요약 (예: 이차함수 최대/최소 구하는 법)" required>
+        </div>
+
+        <div class="form-group">
+          <label for="inputTags">태그 입력 (쉼표로 구분)</label>
+          <input type="text" id="inputTags" placeholder="예: 개념이해, 기출문제, 중간고사">
+        </div>
+
+        <div class="form-group">
+          <label for="inputContent">질문 상세 내용 <span class="required">*</span></label>
+          <textarea id="inputContent" rows="6" placeholder="이해하기 어려웠던 부분을 구체적으로 작성해주세요. (문제집 몇 페이지인지, 어느 단계에서 막혔는지 등)" required></textarea>
+        </div>
+
+        <div class="form-notice">
+          ℹ️ 질문은 로그인된 <strong>@user_01 (김학구)</strong> 계정 명의로 저장됩니다.
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btnCancelNewQuestion">취소</button>
+          <button type="submit" class="btn-primary">질문 등록 완료</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 모달 레이어 2: 질문 상세 보기 & 답변 모달 -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-container modal-large">
+      <div class="modal-header">
+        <div class="detail-subject-badge" id="detailSubject">과목</div>
+        <button class="modal-close" id="btnCloseDetail">&times;</button>
+      </div>
+      
+      <div class="modal-scroll-content" id="detailModalContent">
+        <!-- JS로 상세 질문 및 답변 목록이 Dynamic으로 구성됩니다. -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 비즈니스 로직 스크립트 연결 -->
+  <script src="app.js"></script>
+</body>
+</html>
