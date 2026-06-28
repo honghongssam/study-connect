@@ -80,21 +80,21 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   3. 메인 3단 레이아웃 그리드 (App Grid Layout)
+   3. 메인 2단 레이아웃 그리드 (App Grid Layout)
    -------------------------------------------------------------------------- */
 .app-layout {
   display: grid;
-  grid-template-columns: 260px 1fr 320px; /* 좌 측 260px, 중앙 가변, 우 측 320px */
+  grid-template-columns: 280px 1fr; /* 좌 측 280px, 중앙 가변 (2단 구조) */
   height: 100vh;
   width: 100vw;
   background-color: var(--bg-dark-secondary);
 }
 
 /* --------------------------------------------------------------------------
-   4. 1단 (좌측 사이드바): 과목 & 키워드 탐색
+   4. 1단 (좌측 사이드바): 과목 & 키워드 탐색 및 내 프로필
    -------------------------------------------------------------------------- */
 .sidebar-left {
-  background-color: #121316;
+  background-color: #ffffff;
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;

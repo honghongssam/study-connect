@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StudyConnect - 학생 학습 Q&A 커뮤니티</title>
-  <meta name="description" content="학생들이 공부하다 궁금한 점을 질문하고 답변을 나누는 3단 구조 Q&A 커뮤니티 플랫폼입니다.">
+  <meta name="description" content="학생들이 공부하다 궁금한 점을 질문하고 답변을 나누는 2단 구조 Q&A 커뮤니티 플랫폼입니다.">
   <!-- Google Fonts 프리로드 및 가져오기 (Inter & Noto Sans KR) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,11 +14,11 @@
 </head>
 <body>
 
-  <!-- 메인 앱 컨테이너 (슬랙/디스코드 느낌의 3단 레이아웃) -->
+  <!-- 메인 앱 컨테이너 (깔끔한 2단 레이아웃) -->
   <div id="app" class="app-layout">
     
     <!-- ========================================== -->
-    <!-- 1단 (좌측): 스마트 키워드 & 과목 사이드바 -->
+    <!-- 1단 (좌측): 과목 탐색, 태그 & 내 프로필 카드 -->
     <!-- ========================================== -->
     <aside class="sidebar-left" id="sidebarLeft">
       <!-- 서비스 로고 헤더 -->
@@ -27,6 +27,33 @@
         <div class="logo-text">
           <h1>StudyConnect</h1>
           <span class="badge-school">서연고등학교</span>
+        </div>
+      </div>
+
+      <!-- 현재 테스트 유저 (user_01) 프로필 카드 (좌측 배치) -->
+      <div class="widget-card user-profile-card" style="margin-bottom: 24px;">
+        <div class="profile-header">
+          <div class="avatar" id="userAvatar">🎓</div>
+          <div class="user-info">
+            <h3 id="userName">김학구</h3>
+            <span class="user-id-tag">@user_01 (테스트 유저)</span>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="userQuestionCount">0</span>
+            <span class="stat-label">내 질문</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value" id="userAnswerCount">0</span>
+            <span class="stat-label">내 답변</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value" id="userAcceptedCount">0</span>
+            <span class="stat-label">채택</span>
+          </div>
         </div>
       </div>
 
@@ -73,7 +100,7 @@
     </aside>
 
     <!-- ========================================== -->
-    <!-- 2단 (중앙): 질문 게시판 & 메인 콘텐츠 피드 -->
+    <!-- 2단 (중앙/메인): 질문 게시판 & 피드 -->
     <!-- ========================================== -->
     <main class="main-content" id="mainContent">
       <!-- 상단 검색 및 질문 작성 컨트롤 바 -->
@@ -105,65 +132,6 @@
         <!-- JS로 dynamic 렌더링 됩니다. -->
       </div>
     </main>
-
-    <!-- ========================================== -->
-    <!-- 3단 (우측): 공지사항 & 내 프로필 위젯 -->
-    <!-- ========================================== -->
-    <aside class="sidebar-right" id="sidebarRight">
-      <!-- 현재 테스트 유저 (user_01) 프로필 카드 -->
-      <div class="widget-card user-profile-card">
-        <div class="profile-header">
-          <div class="avatar" id="userAvatar">🎓</div>
-          <div class="user-info">
-            <h3 id="userName">김학구</h3>
-            <span class="user-id-tag">@user_01 (테스트 유저)</span>
-          </div>
-        </div>
-        <div class="profile-stats">
-          <div class="stat-item">
-            <span class="stat-value" id="userQuestionCount">0</span>
-            <span class="stat-label">내가 쓴 질문</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value" id="userAnswerCount">0</span>
-            <span class="stat-label">작성한 답변</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value" id="userAcceptedCount">0</span>
-            <span class="stat-label">채택된 답변</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 학교 및 클래스 공지사항 위젯 -->
-      <div class="widget-card notice-widget">
-        <h3 class="widget-title">📢 학습 커뮤니티 공지</h3>
-        <ul class="notice-list">
-          <li class="notice-item">
-            <span class="notice-tag">이벤트</span>
-            <p class="notice-text">2학기 중간고사 대비 '열공 답변왕' 포인트 지급 이벤트!</p>
-          </li>
-          <li class="notice-item">
-            <span class="notice-tag">안내</span>
-            <p class="notice-text">친구에게 매너 있는 예쁜 말과 정확한 풀이를 선물해주세요.</p>
-          </li>
-          <li class="notice-item">
-            <span class="notice-tag">팁</span>
-            <p class="notice-text">질문 작성 시 과목과 태그를 정확히 선택하면 빠르게 답변을 받아요.</p>
-          </li>
-        </ul>
-      </div>
-
-      <!-- 답변 대기 중인 질문 퀵 위젯 -->
-      <div class="widget-card quick-questions-widget">
-        <h3 class="widget-title">🙋‍♂️ 답변을 기다리는 질문</h3>
-        <div class="quick-list" id="quickQuestionsList">
-          <!-- JS로 dynamic 렌더링 됩니다. -->
-        </div>
-      </div>
-    </aside>
 
   </div>
 

@@ -278,6 +278,7 @@ function renderUserProfile() {
  */
 function renderQuickQuestions() {
   const quickContainer = document.getElementById("quickQuestionsList");
+  if (!quickContainer) return; // 2단 구조 전환으로 해당 요소가 없을 경우 리턴
   
   // 답변 수 0개이고 pending 상태인 질문 3개 추출
   const pendingQuestions = state.questions.filter(q => {
