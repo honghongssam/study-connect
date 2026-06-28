@@ -1,15 +1,14 @@
 /**
  * ==========================================================================
  * StudyConnect - 메인 애플리케이션 프론트엔드 비즈니스 로직 (app.js)
- * 설명: 파이어베이스 Firestore 데이터베이스 실시간 연동, 질문/답변 CRUD 및 상태 관리
+ * 설명: 파이어베이스 Firestore DB & Auth 인증 (구글/이메일 로그인/회원가입) 연동
  * ==========================================================================
  */
 
 // --------------------------------------------------------------------------
-// 1. 파이어베이스(Firebase) 설정 및 데이터베이스 초기화
+// 1. 파이어베이스(Firebase) 설정 및 초기화
 // --------------------------------------------------------------------------
 
-// ⚠️ 깃허브 및 파이어베이스 콘솔(Project Settings)에서 확인하신 설정값으로 아래를 채워주세요!
 const firebaseConfig = {
   apiKey: "AIzaSyAMLWBxnWVZKBEXGLXntQMF3gkKy4rZ80o",
   authDomain: "study-connect-452d5.firebaseapp.com",
@@ -20,52 +19,49 @@ const firebaseConfig = {
 };
 
 let db = null;
+let auth = null;
 let useFirebase = false;
 
-// 파이어베이스 연동 시도
+// 파이어베이스 연동 초기화
 try {
   if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    auth = firebase.auth();
     useFirebase = true;
-    console.log("🔥 Firebase Firestore 데이터베이스 연결 완료!");
-  } else {
-    console.log("ℹ️ LocalStorage 모드로 동작 중입니다. firebaseConfig에 파이어베이스 키를 입력하면 클라우드 DB로 자동 전환됩니다.");
+    console.log("🔥 Firebase Firestore 및 Authentication 초기화 완료!");
   }
 } catch (e) {
   console.warn("Firebase 연동 준비 안내:", e);
 }
 
 // --------------------------------------------------------------------------
-// 2. 상태 변수 및 현재 사용자 설정 (State & Current User)
+// 2. 상태 변수 및 사용자 설정 (State & Current User)
 // --------------------------------------------------------------------------
 
-// 요구사항: 테스트 유저 'user_01' 계정 명의로 모든 데이터 동작
-const currentUser = {
-  userId: "user_01",
-  userName: "김학구",
-  userAvatar: "🎓",
-  grade: "2학년 3반"
+let currentUser = {
+  userId: "guest",
+  userName: "로그인이 필요합니다",
+  userAvatar: "👤",
+  isLoggedIn: false
 };
 
-// 애플리케이션 활성 상태 (필터링 및 정렬 기준 저장)
 let state = {
-  questions: [],        // 질문 전체 배열 목록
-  answers: [],          // 답변(댓글) 전체 배열 목록
-  selectedSubject: "all", // 선택된 과목 필터 ('all' 또는 '수학', '영어' 등)
-  selectedTag: "all",     // 선택된 태그 필터 ('all' 또는 '#개념이해' 등)
-  searchQuery: "",       // 검색어 문자열
-  sortBy: "latest",      // 정렬 방식 ('latest': 최신순, 'popular': 추천순, 'unanswered': 답변 대기순)
-  activeQuestionId: null // 현재 상세 모달에 열려있는 질문 ID
+  questions: [],        
+  answers: [],          
+  selectedSubject: "all",
+  selectedTag: "all",     
+  searchQuery: "",       
+  sortBy: "latest",      
+  activeQuestionId: null 
 };
 
-// LocalStorage 키 명칭 (Fallback 용)
+let isAuthModeSignup = false; // false: 로그인 모드, true: 회원가입 모드
+
 const STORAGE_KEY_QUESTIONS = "studyconnect_questions_v1";
 const STORAGE_KEY_ANSWERS = "studyconnect_answers_v1";
 
-// --------------------------------------------------------------------------
-// 3. 초기 풍부한 샘플 데이터 (Initial Mock Data - 파이어베이스 최초 생성용)
-// --------------------------------------------------------------------------
+// 초기 샘플 데이터
 const initialQuestions = [
   {
     id: "q_101",
@@ -80,20 +76,6 @@ const initialQuestions = [
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
     likes: 8,
     acceptedAnswerId: "a_501"
-  },
-  {
-    id: "q_102",
-    userId: "user_01",
-    authorName: "김학구",
-    authorAvatar: "🎓",
-    subject: "영어",
-    tags: ["수능", "풀이과정"],
-    title: "관계대명사 that과 관계부사 where 구별법 팁 있으신가요?",
-    content: "빈칸 채우기 문제에서 뒤 문장이 완전한지 불완전한지 구별하는 게 제일 어렵습니다. 뒷문장의 형식(1~5형식)을 빠르게 확인하는 꿀팁이 궁금합니다.",
-    status: "pending",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-    likes: 4,
-    acceptedAnswerId: null
   }
 ];
 
@@ -104,7 +86,7 @@ const initialAnswers = [
     userId: "user_04",
     authorName: "정멘토",
     authorAvatar: "👨‍🏫",
-    content: "결론부터 말씀드리면 '미분가능하면 반드시 연속'이지만, '연속이라고 해서 반드시 미분가능한 것은 아니다'입니다!\n\n예를 들어 y=|x| 그래프는 x=0에서 연속이지만 뾰족한 점(첨점)입니다. 이 점에서 좌미분계수(-1)와 우미분계수(+1)가 다르기 때문에 순간변화율(미분계수)을 하나로 정의할 수 없어서 미분불가능합니다.",
+    content: "결론부터 말씀드리면 '미분가능하면 반드시 연속'이지만, '연속이라고 해서 반드시 미분가능한 것은 아니다'입니다!",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     likes: 12,
     isAccepted: true
@@ -112,18 +94,81 @@ const initialAnswers = [
 ];
 
 // --------------------------------------------------------------------------
+// 3. 파이어베이스 인증 상태 수신기 (Auth State Listener)
+// --------------------------------------------------------------------------
+
+function initAuthListener() {
+  if (useFirebase && auth) {
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        // 로그인 성공 시 사용자 정보 반영
+        currentUser = {
+          userId: user.uid,
+          userName: user.displayName || user.email.split("@")[0],
+          userAvatar: user.photoURL ? `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : "🎓",
+          isLoggedIn: true,
+          email: user.email
+        };
+        console.log("👤 로그인 성공:", currentUser.userName);
+      } else {
+        // 로그아웃 또는 게스트 상태
+        currentUser = {
+          userId: "guest",
+          userName: "로그인이 필요합니다",
+          userAvatar: "👤",
+          isLoggedIn: false
+        };
+        console.log("👤 게스트 상태");
+      }
+      updateAuthUI();
+      renderApp();
+    });
+  } else {
+    // LocalStorage 모드 시 기본 테스트 유저로 설정
+    currentUser = {
+      userId: "user_01",
+      userName: "김학구 (테스트)",
+      userAvatar: "🎓",
+      isLoggedIn: true
+    };
+    updateAuthUI();
+  }
+}
+
+/**
+ * 로그인/로그아웃 버튼 및 프로필 UI 업데이트
+ */
+function updateAuthUI() {
+  const nameEl = document.getElementById("userName");
+  const tagEl = document.getElementById("userIdTag");
+  const avatarEl = document.getElementById("userAvatar");
+  const btnOpenAuth = document.getElementById("btnOpenAuth");
+  const btnLogout = document.getElementById("btnLogout");
+  const noticeEl = document.getElementById("newQuestionAuthorNotice");
+
+  if (nameEl) nameEl.textContent = currentUser.userName;
+  if (tagEl) tagEl.textContent = currentUser.isLoggedIn ? `@${currentUser.userName}` : "Guest User";
+  if (avatarEl) avatarEl.innerHTML = currentUser.userAvatar;
+
+  if (currentUser.isLoggedIn) {
+    if (btnOpenAuth) btnOpenAuth.style.display = "none";
+    if (btnLogout) btnLogout.style.display = "block";
+    if (noticeEl) noticeEl.innerHTML = `ℹ️ 질문은 현재 로그인된 <strong>${currentUser.userName}</strong> 계정 명의로 저장됩니다.`;
+  } else {
+    if (btnOpenAuth) btnOpenAuth.style.display = "block";
+    if (btnLogout) btnLogout.style.display = "none";
+    if (noticeEl) noticeEl.innerHTML = `⚠️ 질문을 남기려면 <strong>로그인</strong>이 필요합니다.`;
+  }
+}
+
+// --------------------------------------------------------------------------
 // 4. 데이터 동기화 함수 (Firebase & LocalStorage Sync)
 // --------------------------------------------------------------------------
 
-/**
- * 데이터 불러오기 및 실시간 바인딩
- */
 function loadData() {
   if (useFirebase && db) {
-    // 🔥 파이어베이스 Firestore 실시간 수신기(onSnapshot) 연결
     db.collection("questions").onSnapshot((snapshot) => {
       if (snapshot.empty && state.questions.length === 0) {
-        // DB가 완전 비어있으면 초기 시드 데이터 업로드
         initialQuestions.forEach(q => db.collection("questions").doc(q.id).set(q));
       } else {
         state.questions = snapshot.docs.map(doc => doc.data());
@@ -142,7 +187,6 @@ function loadData() {
       }
     });
   } else {
-    // 💾 LocalStorage fallback 모드
     const savedQuestions = localStorage.getItem(STORAGE_KEY_QUESTIONS);
     const savedAnswers = localStorage.getItem(STORAGE_KEY_ANSWERS);
 
@@ -158,19 +202,12 @@ function loadData() {
   }
 }
 
-/**
- * 로컬 스토리지 데이터 저장 (Fallback)
- */
 function saveData() {
   if (!useFirebase) {
     localStorage.setItem(STORAGE_KEY_QUESTIONS, JSON.stringify(state.questions));
     localStorage.setItem(STORAGE_KEY_ANSWERS, JSON.stringify(state.answers));
   }
 }
-
-// --------------------------------------------------------------------------
-// 5. 유틸리티 함수 (Utility Functions)
-// --------------------------------------------------------------------------
 
 function formatTimeAgo(dateString) {
   const date = new Date(dateString);
@@ -184,13 +221,12 @@ function formatTimeAgo(dateString) {
 }
 
 // --------------------------------------------------------------------------
-// 6. UI 렌더링 로직 (Rendering Functions)
+// 5. UI 렌더링 로직 (Rendering Functions)
 // --------------------------------------------------------------------------
 
 function renderApp() {
   renderQuestionFeed();
   renderUserProfile();
-  renderQuickQuestions();
 }
 
 function renderQuestionFeed() {
@@ -271,6 +307,12 @@ function renderQuestionFeed() {
 }
 
 function renderUserProfile() {
+  if (!currentUser.isLoggedIn) {
+    document.getElementById("userQuestionCount").textContent = 0;
+    document.getElementById("userAnswerCount").textContent = 0;
+    document.getElementById("userAcceptedCount").textContent = 0;
+    return;
+  }
   const myQuestionsCount = state.questions.filter(q => q.userId === currentUser.userId).length;
   const myAnswers = state.answers.filter(a => a.userId === currentUser.userId);
   const myAnswersCount = myAnswers.length;
@@ -281,33 +323,128 @@ function renderUserProfile() {
   document.getElementById("userAcceptedCount").textContent = myAcceptedCount;
 }
 
-function renderQuickQuestions() {
-  const quickContainer = document.getElementById("quickQuestionsList");
-  if (!quickContainer) return;
+// --------------------------------------------------------------------------
+// 6. 인증 핸들러 (Google & Email Auth Handlers)
+// --------------------------------------------------------------------------
 
-  const pendingQuestions = state.questions.filter(q => {
-    const ansCount = state.answers.filter(a => a.questionId === q.id).length;
-    return q.status === "pending" && ansCount === 0;
-  }).slice(0, 3);
+function openAuthModal() {
+  document.getElementById("authModal").classList.add("active");
+}
 
-  if (pendingQuestions.length === 0) {
-    quickContainer.innerHTML = `<p style="font-size:12px; color: var(--text-muted);">모든 질문에 답변이 작성되었습니다! 🎉</p>`;
+function closeAuthModal() {
+  document.getElementById("authModal").classList.remove("active");
+  document.getElementById("emailAuthForm").reset();
+}
+
+function toggleAuthMode() {
+  isAuthModeSignup = !isAuthModeSignup;
+  const titleEl = document.getElementById("authModalTitle");
+  const submitBtnEl = document.getElementById("btnSubmitAuth");
+  const toggleTextEl = document.getElementById("authToggleText");
+  const toggleBtnEl = document.getElementById("btnToggleAuthMode");
+  const groupDisplayName = document.getElementById("groupDisplayName");
+
+  if (isAuthModeSignup) {
+    titleEl.textContent = "📝 스터디커넥트 회원가입";
+    submitBtnEl.textContent = "회원가입 완료";
+    toggleTextEl.textContent = "이미 계정이 있으신가요?";
+    toggleBtnEl.textContent = "로그인하기";
+    groupDisplayName.style.display = "flex";
+  } else {
+    titleEl.textContent = "🔐 스터디커넥트 로그인";
+    submitBtnEl.textContent = "로그인하기";
+    toggleTextEl.textContent = "아직 계정이 없으신가요?";
+    toggleBtnEl.textContent = "회원가입하기";
+    groupDisplayName.style.display = "none";
+  }
+}
+
+/**
+ * 구글 계정 소셜 로그인
+ */
+function handleGoogleLogin() {
+  if (!useFirebase || !auth) {
+    alert("파이어베이스가 연결되지 않은 상태입니다.");
+    return;
+  }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then((result) => {
+      alert(`환영합니다, ${result.user.displayName || '학생'}님! 🎉`);
+      closeAuthModal();
+    })
+    .catch((error) => {
+      console.error("구글 로그인 실패:", error);
+      alert(`구글 로그인 실패: ${error.message}`);
+    });
+}
+
+/**
+ * 이메일/비밀번호 로그인 및 회원가입 제출
+ */
+function handleEmailAuthSubmit(e) {
+  e.preventDefault();
+  if (!useFirebase || !auth) {
+    alert("파이어베이스가 연결되지 않은 상태입니다.");
     return;
   }
 
-  quickContainer.innerHTML = pendingQuestions.map(q => `
-    <div class="quick-item" onclick="openDetailModal('${q.id}')">
-      <div class="quick-title">${q.title}</div>
-      <div class="quick-meta">${q.subject} • ${formatTimeAgo(q.createdAt)}</div>
-    </div>
-  `).join("");
+  const email = document.getElementById("inputEmail").value.trim();
+  const password = document.getElementById("inputPassword").value;
+  const displayName = document.getElementById("inputDisplayName").value.trim();
+
+  if (isAuthModeSignup) {
+    // 1) 이메일 회원가입
+    auth.createUserWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        return user.updateProfile({
+          displayName: displayName || email.split("@")[0]
+        });
+      })
+      .then(() => {
+        alert("회원가입이 성공적으로 완료되었습니다! 🎉");
+        closeAuthModal();
+      })
+      .catch((error) => {
+        console.error("회원가입 실패:", error);
+        alert(`회원가입 에러: ${error.message}`);
+      });
+  } else {
+    // 2) 이메일 로그인
+    auth.signInWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        alert(`로그인 성공! 환영합니다.`);
+        closeAuthModal();
+      })
+      .catch((error) => {
+        console.error("로그인 실패:", error);
+        alert(`로그인 실패: 이메일이나 비밀번호를 확인해주세요.`);
+      });
+  }
+}
+
+/**
+ * 로그아웃 처리
+ */
+function handleLogout() {
+  if (useFirebase && auth) {
+    auth.signOut().then(() => {
+      alert("로그아웃되었습니다.");
+    });
+  }
 }
 
 // --------------------------------------------------------------------------
-// 7. 모달 및 CRUD 이벤트 처리 (Firebase Firestore 연동)
+// 7. 모달 및 Q&A CRUD 이벤트 처리
 // --------------------------------------------------------------------------
 
 function openNewQuestionModal() {
+  if (useFirebase && !currentUser.isLoggedIn) {
+    alert("질문을 작성하려면 먼저 로그인해주세요!");
+    openAuthModal();
+    return;
+  }
   document.getElementById("newQuestionModal").classList.add("active");
 }
 
@@ -319,6 +456,12 @@ function closeNewQuestionModal() {
 function handleNewQuestionSubmit(e) {
   e.preventDefault();
 
+  if (useFirebase && !currentUser.isLoggedIn) {
+    alert("로그인이 필요한 기능입니다.");
+    openAuthModal();
+    return;
+  }
+
   const subject = document.getElementById("inputSubject").value;
   const title = document.getElementById("inputTitle").value.trim();
   const tagsRaw = document.getElementById("inputTags").value.trim();
@@ -329,7 +472,7 @@ function handleNewQuestionSubmit(e) {
     id: "q_" + Date.now(),
     userId: currentUser.userId,
     authorName: currentUser.userName,
-    authorAvatar: currentUser.userAvatar,
+    authorAvatar: currentUser.userAvatar.includes("<img") ? "🎓" : currentUser.userAvatar,
     subject: subject,
     tags: tags,
     title: title,
@@ -341,7 +484,6 @@ function handleNewQuestionSubmit(e) {
   };
 
   if (useFirebase && db) {
-    // 🔥 Firestore에 새 질문 저장
     db.collection("questions").doc(newQuestion.id).set(newQuestion);
   } else {
     state.questions.unshift(newQuestion);
@@ -390,7 +532,7 @@ function renderDetailModalContent() {
       <div class="card-bottom" style="margin-top: 16px;">
         <div class="author-info">
           <div class="author-avatar">${question.authorAvatar}</div>
-          <span class="author-name">${question.authorName} (${question.userId})</span>
+          <span class="author-name">${question.authorName}</span>
         </div>
         <button class="btn-like" onclick="likeQuestion('${question.id}')">
           👍 도움돼요 (${question.likes})
@@ -437,7 +579,7 @@ function renderDetailModalContent() {
       <h4 style="font-size: 14px; font-weight: 600;">✏️ 나만의 답변 남기기</h4>
       <textarea id="answerContentInput" rows="3" placeholder="친절하고 상세한 풀이 과정을 남겨주세요..."></textarea>
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 12px; color: var(--text-muted);">작성자: <strong>@user_01 (${currentUser.userName})</strong></span>
+        <span style="font-size: 12px; color: var(--text-muted);">작성자: <strong>${currentUser.isLoggedIn ? currentUser.userName : '게스트 (로그인 필요)'}</strong></span>
         <button class="btn-primary" onclick="submitAnswer('${question.id}')" style="padding: 6px 16px; font-size: 13px;">
           답변 등록
         </button>
@@ -494,6 +636,12 @@ function acceptAnswer(questionId, answerId) {
 }
 
 function submitAnswer(questionId) {
+  if (useFirebase && !currentUser.isLoggedIn) {
+    alert("답변을 남기려면 먼저 로그인해주세요!");
+    openAuthModal();
+    return;
+  }
+
   const input = document.getElementById("answerContentInput");
   const content = input.value.trim();
 
@@ -507,7 +655,7 @@ function submitAnswer(questionId) {
     questionId: questionId,
     userId: currentUser.userId,
     authorName: currentUser.userName,
-    authorAvatar: currentUser.userAvatar,
+    authorAvatar: currentUser.userAvatar.includes("<img") ? "🎓" : currentUser.userAvatar,
     content: content,
     createdAt: new Date().toISOString(),
     likes: 0,
@@ -525,12 +673,14 @@ function submitAnswer(questionId) {
 }
 
 // --------------------------------------------------------------------------
-// 8. 이벤트 리스너 바인딩 및 애플리케이션 초기화 (Initialization)
+// 8. 초기화 및 이벤트 바인딩 (Initialization)
 // --------------------------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", () => {
+  initAuthListener();
   loadData();
 
+  // 필터 이벤트
   document.getElementById("categoryList").addEventListener("click", (e) => {
     const item = e.target.closest(".category-item");
     if (!item) return;
@@ -563,6 +713,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // 인증 관련 이벤트 바인딩
+  document.getElementById("btnOpenAuth").addEventListener("click", openAuthModal);
+  document.getElementById("btnCloseAuth").addEventListener("click", closeAuthModal);
+  document.getElementById("btnToggleAuthMode").addEventListener("click", toggleAuthMode);
+  document.getElementById("btnGoogleAuth").addEventListener("click", handleGoogleLogin);
+  document.getElementById("emailAuthForm").addEventListener("submit", handleEmailAuthSubmit);
+  document.getElementById("btnLogout").addEventListener("click", handleLogout);
+
+  // Q&A 모달 이벤트
   document.getElementById("btnOpenNewQuestion").addEventListener("click", openNewQuestionModal);
   document.getElementById("btnCloseNewQuestion").addEventListener("click", closeNewQuestionModal);
   document.getElementById("btnCancelNewQuestion").addEventListener("click", closeNewQuestionModal);
@@ -571,6 +730,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("click", (e) => {
     if (e.target.classList.contains("modal-overlay")) {
+      closeAuthModal();
       closeNewQuestionModal();
       closeDetailModal();
     }
