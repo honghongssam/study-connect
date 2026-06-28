@@ -11,12 +11,12 @@
 
 // ⚠️ 깃허브 및 파이어베이스 콘솔(Project Settings)에서 확인하신 설정값으로 아래를 채워주세요!
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAMLWBxnWVZKBEXGLXntQMF3gkKy4rZ80o",
+  authDomain: "study-connect-452d5.firebaseapp.com",
+  projectId: "study-connect-452d5",
+  storageBucket: "study-connect-452d5.firebasestorage.app",
+  messagingSenderId: "965146016978",
+  appId: "1:965146016978:web:f2db4390eb3d81b58a810b"
 };
 
 let db = null;
